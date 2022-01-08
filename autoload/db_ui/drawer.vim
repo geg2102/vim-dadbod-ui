@@ -681,7 +681,7 @@ function! s:drawer.populate_schemas(db) abort
   let schemas = scheme.parse_results(db_ui#schemas#query(a:db, scheme, scheme.database_query), 1)
   let tables_by_schema = {}
   for [table_catalog, table_schema, table_name, table_type] in databases
-    if !has_key(tables_by_schema, scheme_name)
+    if !has_key(tables_by_schema, table_catalog)
       let tables_by_schema[table_catalog] = []
     endif
     call add(tables_by_schema[table_catalog], table_name)
