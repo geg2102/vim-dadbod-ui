@@ -443,7 +443,7 @@ function! s:drawer.add_db(db) abort
   endif
 
   if a:db.schema_support
-    call self.add('Schemas ('.len(a:db.databases.items).')', 'toggle', 'schemas', self.get_toggle_icon('schemas', a:db.schemas), a:db.key_name, 1, { 'expanded': a:db.databases.expanded })
+    call self.add('Schemas ('.len(a:db.databases.items).')', 'toggle', 'databases', self.get_toggle_icon('schemas', a:db.schemas), a:db.key_name, 1, { 'expanded': a:db.databases.expanded })
     if a:db.databases.expanded
       for schema in a:db.databases.list
         let schema_item = a:db.databases.items[schema]
