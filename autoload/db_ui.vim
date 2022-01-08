@@ -89,6 +89,7 @@ function! db_ui#get_conn_info(db_key_name) abort
         \ 'conn': db.conn,
         \ 'tables': db.tables.list,
         \ 'schemas': db.schemas.list,
+        \ 'databases': db.databases.list, 
         \ 'scheme': db.scheme,
         \ 'connected': !empty(db.conn),
         \ }
@@ -252,6 +253,7 @@ function! s:dbui.generate_new_db_entry(db) abort
         \ 'expanded': 0,
         \ 'tables': {'expanded': 0 , 'items': {}, 'list': [] },
         \ 'schemas': {'expanded': 0, 'items': {}, 'list': [] },
+        \ 'databases': {'expanded': 0, 'items': {}, 'list': [] },
         \ 'saved_queries': { 'expanded': 0, 'list': [] },
         \ 'buffers': { 'expanded': 0, 'list': buffers, 'tmp': [] },
         \ 'save_path': save_path,

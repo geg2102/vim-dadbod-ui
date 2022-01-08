@@ -37,8 +37,8 @@ let s:postgres_tables_and_views = "
 let s:postgresql = {
       \ 'args': s:postgresql_args,
       \ 'foreign_key_query': printf(s:postgresql_args, s:postgres_foreign_key_query),
-      \ 'schemes_query': printf(s:postgresql_args, s:postgres_list_schema_query),
-      \ 'schemes_tables_query': printf(s:postgresql_args, s:postgres_tables_and_views),
+      \ 'database_query': printf(s:postgresql_args, s:postgres_list_schema_query),
+      \ 'all_tables_query': printf(s:postgresql_args, s:postgres_tables_and_views),
       \ 'select_foreign_key_query': 'select * from "%s"."%s" where "%s" = %s',
       \ 'cell_line_number': 2,
       \ 'cell_line_pattern': '^-\++-\+',
@@ -63,11 +63,24 @@ let s:sqlserver_foreign_keys_query = "
       \ and kcu.column_name = '{col_name}'
       \ "
 
+let s:sqlserver_all_tables_query = "
+    \ SELECT TOP 1 * INTO ##test
+    \ FROM INFORMATION_SCHEMA.TABLES
+    \ DELETE FROM ##test 
+    \
+    \ EXEC sp_MSforeachdb 'USE [?] INSERT INTO ##test SELECT * FROM INFORMATION_SCHEMA.TABLES;'
+    \ SELECT * FROM ##test
+    \ WHERE TABLE_CATALOG NOT IN ('master', 'tempdb', 'msdb')
+    \ ORDER BY TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME
+    \"
+
 let s:sqlserver_args = '-h-1 -W -s "|" -Q "%s"'
 let s:sqlserver = {
       \   'args': s:sqlserver_args,
       \   'foreign_key_query': printf(s:sqlserver_args, trim(s:sqlserver_foreign_keys_query)),
       \   'schemes_query': printf(s:sqlserver_args, 'SELECT schema_name FROM information_schema.schemata'),
+      \   'database_query': printf(s:sqlserver_args, 'SELECT name FROM sys.databases'),
+      \   'all_tables_query': printf(s:sqlserver_args, trim(s:sqlserver_all_tables_query)),
       \   'schemes_tables_query': printf(s:sqlserver_args, 'SELECT table_schema, table_name FROM information_schema.tables'),
       \   'select_foreign_key_query': 'select * from %s.%s where %s = %s',
       \   'cell_line_number': 2,
