@@ -466,7 +466,7 @@ function! s:drawer.add_db(db) abort
           for database in a:db.databases.list
               let database_item = a:db.databases.items[database]
               let schemas = database_item.schemas
-              call self.add(database.' ('.len(schemas.items).')', 'toggle', 'databases->items->'.database, self.get_toggle_icon('schema', database_item), a:db.key_name, 2, {'expanded': database_item.expaneded})
+              call self.add(database.' ('.len(schemas.items).')', 'toggle', 'databases->items->'.database, self.get_toggle_icon('schema', database_item), a:db.key_name, 2, {'expanded': database_item.expanded})
               if database_item.expanded
                   for schema in schemas.list
                       let schema_item = schemas.items[schema]
