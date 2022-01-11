@@ -1,6 +1,5 @@
 let s:drawer_instance = {}
 let s:drawer = {}
-let s:sqlserver_args = '-h-1 -W -s "|" -Q "%s"' 
 
 function db_ui#drawer#new(dbui)
   let s:drawer_instance = s:drawer.new(a:dbui)
@@ -462,20 +461,24 @@ function! s:drawer.add_db(db) abort
 	  endif
   endif 
   if a:db.schema_support
-    call self.add('Schemas ('.len(a:db.databases.items).')', 'toggle', 'databases', self.get_toggle_icon('schemas', a:db.schemas), a:db.key_name, 1, { 'expanded': a:db.databases.expanded })
-    if a:db.databases.expanded
-      for schema in a:db.databases.list
-        let schema_item = a:db.databases.items[schema]
-        let tables = schema_item.tables
-        call self.add(schema.' ('.len(tables.items).')', 'toggle', 'databases->items->'.schema, self.get_toggle_icon('schema', schema_item), a:db.key_name, 2, { 'expanded': schema_item.expanded })
-        if schema_item.expanded
-          call self.render_tables(tables, a:db,'databases->items->'.schema.'->tables->items', 3, schema)
-        endif
-      endfor
-    endif
-  else
-    call self.add('Tables ('.len(a:db.tables.items).')', 'toggle', 'tables', self.get_toggle_icon('tables', a:db.tables), a:db.key_name, 1, { 'expanded': a:db.tables.expanded })
-    call self.render_tables(a:db.tables, a:db, 'tables->items', 2, '')
+      call self.add('Databases ('.len(a:db.databases.items).')', 'toggle', 'databases', self.get_toggle_icon('schemas', a:db.schemas), a:db.key_name, 1, {'expanded': a:db.databases.expanded})
+      if a:db.databases.expanded
+          for database in a:db.databases.list
+              let database_item = a:db.databases.items[database]
+              let schemas = database_item.schemas
+              call self.add(database.' ('.len(schemas.items).')', 'toggle', 'databases->items->'.database, self.get_toggle_icon('schema', database_item), a:db.key_name, 2, {'expanded': database_item.expaneded})
+              if database_item.expanded
+                  for schema in schemas.list
+                      let schema_item = schemas.items[schema]
+                      let tables = schema_item.tables
+                      call self.add(schema.' ('.len(tables.items).')', 'toggle', 'databases->items->'.database.'->schemas->items->'.schema, self.get_toggle_icon('schema', schema_item), a:db.key_name, 3, {'expanded': schema_item.expanded})
+                      if schema_item.expanded
+                          call self.render_tables(tables, a:db, 'databases->items'.database.'schemas->items->'.schema.'->tables->items', 4, schema)
+                      endif
+                  endfor
+              endif
+          endfor
+      endif
   endif
 endfunction
 
@@ -660,6 +663,14 @@ function! s:drawer.populate_table_items(tables) abort
   endfor
 endfunction
 
+function! s:drawer.populate_schemas_items(schemas) abort
+  for schema in a:schemas.list
+    if !has_key(a:schemas.items, schema)
+        let a:schemas.items[schema] = {'expanded': 0, 'tables': {'expanded': 1, 'list': [], 'items':{}}, }
+    endif
+  endfor
+endfunction
+
 function! s:drawer.populate_schemas(db) abort
   let a:db.schemas.list = []
   let a:db.databases.list = []
@@ -669,60 +680,76 @@ function! s:drawer.populate_schemas(db) abort
   let scheme = db_ui#schemas#get(a:db.scheme)
 
   if stridx(scheme.schemes_query, '-A') != -1
-  let schemas = scheme.parse_results(db_ui#schemas#query(a:db, scheme, scheme.schemes_query), 1)
-  let tables = scheme.parse_results(db_ui#schemas#query(a:db, scheme, scheme.all_tables_query), 2)
-  let tables_by_schema = {}
-  for [scheme_name, table] in tables
-    if !has_key(tables_by_schema, scheme_name)
-      let tables_by_schema[scheme_name] = []
-    endif
-    call add(tables_by_schema[scheme_name], table)
-    call add(a:db.tables.list, table)
-  endfor
-  let a:db.databases.list = schemas
-  for schema in schemas
-    if !has_key(a:db.databases.items, schema)
-      let a:db.databases.items[schema] = {
-            \ 'expanded': 0,
-            \ 'tables': {
-            \   'expanded': 1,
-            \   'list': [],
-            \   'items': {},
-            \ },
-            \ }
+      let schemas = scheme.parse_results(db_ui#schemas#query(a:db, scheme, scheme.schemes_query), 1)
+      let tables = scheme.parse_results(db_ui#schemas#query(a:db, scheme, scheme.all_tables_query), 2)
+      let tables_by_schema = {}
+      for [scheme_name, table] in tables
+          if !has_key(tables_by_schema, scheme_name)
+              let tables_by_schema[scheme_name] = []
+          endif
+          call add(tables_by_schema[scheme_name], table)
+          call add(a:db.tables.list, table)
+      endfor
+      let a:db.databases.list = schemas
+      for schema in schemas
+          if !has_key(a:db.databases.items, schema)
+              let a:db.databases.items[schema] = {
+                          \ 'expanded': 0,
+                          \ 'tables': {
+                              \   'expanded': 1,
+                              \   'list': [],
+                              \   'items': {},
+                              \ },
+                              \ }
 
-    endif
-    let a:db.databases.items[schema].tables.list = sort(get(tables_by_schema, schema, []))
-    call self.populate_table_items(a:db.databases.items[schema].tables)
-  endfor
+          endif
+          let a:db.databases.items[schema].tables.list = sort(get(tables_by_schema, schema, []))
+          call self.populate_table_items(a:db.databases.items[schema].tables)
+      endfor
   else 
-  let databases = scheme.parse_results(db_ui#schemas#query(a:db, scheme, scheme.all_tables_query), 4)
-  let schemas = scheme.parse_results(db_ui#schemas#query(a:db, scheme, scheme.database_query), 1)
-  let tables_by_schema = {}
-  for [table_catalog, table_schema, table_name, table_type] in databases
-    if !has_key(tables_by_schema, table_catalog)
-      let tables_by_schema[table_catalog] = []
-    endif
-    call add(tables_by_schema[table_catalog], table_name)
-    call add(a:db.tables.list, table_name)
-  endfor
-  let a:db.databases.list = schemas
-  for schema in schemas
-    if !has_key(a:db.databases.items, schema)
-      let a:db.databases.items[schema] = {
-            \ 'expanded': 0,
-            \ 'tables': {
-            \   'expanded': 1,
-            \   'list': [],
-            \   'items': {},
-            \ },
-            \ }
-
-    endif
-    let a:db.databases.items[schema].tables.list = sort(get(tables_by_schema, schema, []))
-    call self.populate_table_items(a:db.databases.items[schema].tables)
-endfor
-endif 
+      let tables = scheme.parse_results(db_ui#schemas#query(a:db, scheme, scheme.all_tables_query), 4)
+      let tables_by_schema = {}
+      for [table_catalog, table_schema, table_name, table_type] in tables
+          if !has_key(tables_by_schema, table_catalog)
+              let tables_by_schema[table_catalog] = {}
+          endif
+          if !has_key(tables_by_schema[table_catalog], table_schema)
+              let tables_by_schema[table_catalog][table_schema] = []
+          endif
+          if index(tables_by_schema[table_catalog][table_schema], table_name) == -1
+              call add(tables_by_schema[table_catalog][table_schema], table_name)
+          endif
+      endfor
+      let a:db.databases.list = sort(keys(tables_by_schema))
+      for database in keys(tables_by_schema) 
+          if !has_key(a:db.databases.items, database)
+              let a:db.databases.items[database] = {
+                          \ 'expanded': 0,
+                          \ 'schemas': {
+                              \ 'expanded': 1, 
+                              \ 'list': [], 
+                              \ 'items': {},
+                              \},
+                              \}
+          endif
+          let a:db.databases.items[database].schemas.list = sort(keys(tables_by_schema[database]))
+          call self.populate_schemas_items(a:db.databases.items[database].schemas)
+          for schema in keys(a:db.databases.items[database].schemas.items)
+              if !has_key(a:db.databases.items[database].schemas.items, schema) 
+                  let a:db.databases.items[database].schemas.items[schema] = {
+                          \ 'expanded': 0,
+                          \ 'tables': {
+                              \ 'expanded': 1, 
+                              \ 'list': [], 
+                              \ 'items': {},
+                              \},
+                              \}
+              endif
+              let a:db.databases.items[database].schemas.items[schema].tables.list = sort(get(tables_by_schema[database], schema, []))
+              call self.populate_table_items(a:db.databases.items[database].schemas.items[schema].tables)
+          endfor
+      endfor
+  endif
   return a:db
 endfunction
 
