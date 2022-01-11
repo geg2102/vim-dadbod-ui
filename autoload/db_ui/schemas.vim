@@ -37,7 +37,7 @@ let s:postgres_tables_and_views = "
 let s:postgresql = {
       \ 'args': s:postgresql_args,
       \ 'foreign_key_query': printf(s:postgresql_args, s:postgres_foreign_key_query),
-      \ 'schems_query': printf(s:postgresql_args, s:postgres_schema_query),
+      \ 'schemas_query': printf(s:postgresql_args, s:postgres_schema_query),
       \ 'database_query': printf(s:postgresql_args, s:postgres_list_schema_query),
       \ 'all_tables_query': printf(s:postgresql_args, s:postgres_tables_and_views),
       \ 'select_foreign_key_query': 'select * from "%s"."%s" where "%s" = %s',
