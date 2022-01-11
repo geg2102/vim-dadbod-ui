@@ -442,6 +442,25 @@ function! s:drawer.add_db(db) abort
     endfor
   endif
 
+  let scheme = db_ui#schemas#get(a:db.scheme)
+  if stridx(scheme.schemes_query, '-A') != -1 
+	  if a:db.schema_support
+		  call self.add('Schemas ('.len(a:db.schemas.items).')', 'toggle', 'schemas', self.get_toggle_icon('schemas', a:db.schemas), a:db.key_name, 1, { 'expanded': a:db.schemas.expanded })
+		  if a:db.schemas.expanded
+			  for schema in a:db.schemas.list
+				  let schema_item = a:db.schemas.items[schema]
+				  let tables = schema_item.tables
+				  call self.add(schema.' ('.len(tables.items).')', 'toggle', 'schemas->items->'.schema, self.get_toggle_icon('schema', schema_item), a:db.key_name, 2, { 'expanded': schema_item.expanded })
+				  if schema_item.expanded
+					  call self.render_tables(tables, a:db,'schemas->items->'.schema.'->tables->items', 3, schema)
+				  endif
+			  endfor
+		  endif
+	  else
+		  call self.add(Tables ('.len(a:db.tables.items).'), 'toggle', 'tables', self.get_toggle_icon('tables', a:db.tables), a:db.key_name, 1, { 'expanded': a:db.tables.expanded })
+		  call self.render_tables(a:db.tables, a:db, 'tables->items', 2, '')
+	  endif
+  endif 
   if a:db.schema_support
     call self.add('Schemas ('.len(a:db.databases.items).')', 'toggle', 'databases', self.get_toggle_icon('schemas', a:db.schemas), a:db.key_name, 1, { 'expanded': a:db.databases.expanded })
     if a:db.databases.expanded
