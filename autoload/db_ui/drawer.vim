@@ -682,6 +682,7 @@ function! s:drawer.populate_schemas(db) abort
   if stridx(scheme.schemes_query, '-A') != -1
       let schemas = scheme.parse_results(db_ui#schemas#query(a:db, scheme, scheme.schemes_query), 1)
       let tables = scheme.parse_results(db_ui#schemas#query(a:db, scheme, scheme.all_tables_query), 2)
+
       let tables_by_schema = {}
       for [scheme_name, table] in tables
           if !has_key(tables_by_schema, scheme_name)
@@ -690,10 +691,10 @@ function! s:drawer.populate_schemas(db) abort
           call add(tables_by_schema[scheme_name], table)
           call add(a:db.tables.list, table)
       endfor
-      let a:db.databases.list = schemas
+      let a:db.schemas.list = schemas
       for schema in schemas
-          if !has_key(a:db.databases.items, schema)
-              let a:db.databases.items[schema] = {
+          if !has_key(a:db.schemas.items, schema)
+              let a:db.schemas.items[schema] = {
                           \ 'expanded': 0,
                           \ 'tables': {
                               \   'expanded': 1,
@@ -703,8 +704,8 @@ function! s:drawer.populate_schemas(db) abort
                               \ }
 
           endif
-          let a:db.databases.items[schema].tables.list = sort(get(tables_by_schema, schema, []))
-          call self.populate_table_items(a:db.databases.items[schema].tables)
+          let a:db.schemas.items[schema].tables.list = sort(get(tables_by_schema, schema, []))
+          call self.populate_table_items(a:db.schemas.items[schema].tables)
       endfor
   else 
       let tables = scheme.parse_results(db_ui#schemas#query(a:db, scheme, scheme.all_tables_query), 4)
