@@ -709,6 +709,9 @@ function! s:drawer.populate_schemas(db) abort
       endfor
   else 
       let tables = scheme.parse_results(db_ui#schemas#query(a:db, scheme, scheme.all_tables_query), 4)
+      if len(tables) == 0
+          let tables = scheme.parse_results(db_ui#schemas#query(a:db, scheme, scheme.all_tables_alt), 4)
+      endif
       let tables_by_schema = {}
       for [table_catalog, table_schema, table_name, table_type] in tables
           if !has_key(tables_by_schema, table_catalog)

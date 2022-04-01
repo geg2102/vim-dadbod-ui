@@ -64,6 +64,9 @@ let s:sqlserver_foreign_keys_query = "
       \ and kcu.column_name = '{col_name}'
       \ "
 
+let s:sqlserver_all_tables_alt = "
+    \ SELECT * FROM INFORMATION_SCHEMA.TABLES"
+
 let s:sqlserver_all_tables_query = "
     \ SELECT TOP 1 * INTO ##test
     \ FROM INFORMATION_SCHEMA.TABLES
@@ -82,6 +85,7 @@ let s:sqlserver = {
       \   'schemes_query': printf(s:sqlserver_args, 'SELECT schema_name FROM information_schema.schemata'),
       \   'database_query': printf(s:sqlserver_args, 'SELECT name FROM sys.databases'),
       \   'all_tables_query': printf(s:sqlserver_args, trim(s:sqlserver_all_tables_query)),
+      \   'all_tables_alt': printf(s:sqlserver_args, trim(s:sqlserver_all_tables_alt)),
       \   'schemes_tables_query': printf(s:sqlserver_args, 'SELECT table_schema, table_name FROM information_schema.tables'),
       \   'select_foreign_key_query': 'select * from %s.%s where %s = %s',
       \   'cell_line_number': 2,
