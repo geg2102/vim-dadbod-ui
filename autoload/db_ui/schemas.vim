@@ -30,7 +30,6 @@ let s:postgres_list_schema_query = "
     \   and pg_catalog.has_schema_privilege(current_user, nspname, 'USAGE')
     \ order by nspname"
 
-let s:postgresql_args = '-A -c "%s"'
 let s:postgres_tables_and_views = "
       \ SELECT table_schema, table_name FROM information_schema.tables UNION ALL
       \ select schemaname, matviewname from pg_matviews;"
@@ -43,7 +42,7 @@ let s:postgresql = {
       \ 'select_foreign_key_query': 'select * from "%s"."%s" where "%s" = %s',
       \ 'cell_line_number': 2,
       \ 'cell_line_pattern': '^-\++-\+',
-      \ 'parse_results': {results,min_len -> s:results_parser(results[1:-2], '|', min_len)},
+      \ 'parse_results': {results,min_len -> s:results_parser(filter(results, '!empty(v:val)')[1:-2], '|', min_len)},
       \ 'default_scheme': 'public',
       \ 'layout_flag': '\\x',
       \ 'quote': 1,
@@ -99,14 +98,13 @@ let s:mysql_foreign_key_query =  "
       \ SELECT referenced_table_name, referenced_column_name, referenced_table_schema
       \ from information_schema.key_column_usage
       \ where referenced_table_name is not null and column_name = '{col_name}' LIMIT 1"
-let s:mysql_args = '-e "%s"'
 let s:mysql = {
-      \ 'args': s:mysql_args,
-      \ 'foreign_key_query': printf(s:mysql_args, s:mysql_foreign_key_query),
-      \ 'schemes_query': printf(s:mysql_args, 'SELECT schema_name FROM information_schema.schemata'),
-      \ 'schemes_tables_query': printf(s:mysql_args, 'SELECT table_schema, table_name FROM information_schema.tables'),
+      \ 'foreign_key_query': s:mysql_foreign_key_query,
+      \ 'schemes_query': 'SELECT schema_name FROM information_schema.schemata',
+      \ 'schemes_tables_query': 'SELECT table_schema, table_name FROM information_schema.tables',
       \ 'select_foreign_key_query': 'select * from %s.%s where %s = %s',
       \ 'cell_line_number': 3,
+      \ 'requires_stdin': v:true,
       \ 'cell_line_pattern': '^+-\++-\+',
       \ 'parse_results': {results, min_len -> s:results_parser(results[1:], '\t', min_len)},
       \ 'default_scheme': '',
@@ -147,7 +145,6 @@ let s:oracle_schemes_tables_query = "
       \ WHERE U.common = 'NO'
       \ ORDER BY T.table_name"
 let s:oracle = {
-      \   'args': s:oracle_args,
       \   'cell_line_number': 1,
       \   'cell_line_pattern': '^-\+\( \+-\+\)*',
       \   'default_scheme': '',
@@ -155,7 +152,7 @@ let s:oracle = {
       \   'has_virtual_results': v:true,
       \   'parse_results': {results, min_len -> s:results_parser(results[15:-5], '\s\s\+', min_len)},
       \   'parse_virtual_results': {results, min_len -> s:results_parser(results[15:-4], '\s\s\+', min_len)},
-      \   'pipe_query': v:true,
+      \   'requires_stdin': v:true,
       \   'quote': v:true,
       \   'schemes_query': printf(s:oracle_args, "SELECT username FROM all_users WHERE common = 'NO' ORDER BY username"),
       \   'schemes_tables_query': printf(s:oracle_args, s:oracle_schemes_tables_query),
@@ -184,23 +181,15 @@ function! db_ui#schemas#get(scheme) abort
 endfunction
 
 function! s:format_query(db, scheme, query) abort
-  let base_query = db#adapter#dispatch(
-  \   type(a:db) == v:t_string ? a:db : a:db.conn,
-  \   'interactive'
-  \ )
-  if type(base_query) ==? type([])
-    let base_query = join(base_query)
+  let conn = type(a:db) == v:t_string ? a:db : a:db.conn
+  let cmd = db#adapter#dispatch(conn, 'interactive') + get(a:scheme, 'args', [])
+  if get(a:scheme, 'requires_stdin')
+    return [cmd, a:query]
   endif
-  let format_expression = '%s %s'
-
-  return get(a:scheme, 'pipe_query', v:false) ?
-  \  printf(format_expression, 'echo "'.a:query.'" |', base_query) :
-  \  printf(format_expression, base_query, a:query)
+  return [cmd + [a:query], '']
 endfunction
 
 function! db_ui#schemas#query(db, scheme, query) abort
-  return map(
-  \   systemlist(s:format_query(a:db, a:scheme, a:query)),
-  \   {_, val -> substitute(val, "\r$", "", "")}
-  \ )
+  let result = call('db#systemlist', s:format_query(a:db, a:scheme, a:query))
+  return map(result, {_, val -> substitute(val, "\r$", "", "")})
 endfunction
