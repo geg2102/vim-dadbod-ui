@@ -12,6 +12,7 @@ function! s:results_parser(results, delimiter, min_len) abort
 
   return filter(mapped,'len(v:val) ==? '.min_len)
 endfunction
+let s:postgresql_args = '-A -c "%s"'
 
 let s:postgres_foreign_key_query = "
       \ SELECT ccu.table_name AS foreign_table_name, ccu.column_name AS foreign_column_name, ccu.table_schema as foreign_table_schema
